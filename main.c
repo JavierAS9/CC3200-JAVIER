@@ -85,7 +85,7 @@
 #define WILL_RETAIN             false
 
 /*Defining Broker IP address and port Number*/
-#define SERVER_ADDRESS          "192.168.43.146"	//192.168.43.146
+#define SERVER_ADDRESS          "192.168.1.104"	//192.168.43.146
 #define PORT_NUMBER             1883
 
 #define MAX_BROKER_CONN         1
