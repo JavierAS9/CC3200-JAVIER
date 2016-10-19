@@ -85,7 +85,7 @@
 #define WILL_RETAIN             false
 
 /*Defining Broker IP address and port Number*/
-#define SERVER_ADDRESS          "192.168.1.104"
+#define SERVER_ADDRESS          "192.168.43.146"	//192.168.43.146
 #define PORT_NUMBER             1883
 
 #define MAX_BROKER_CONN         1
@@ -111,12 +111,13 @@
 #define PUB_TOPIC_FOR_SW2       "/cc3200/ButtonPressEvtSw2"
 
 /*Defining Number of topics*/
-#define TOPIC_COUNT             3
+#define TOPIC_COUNT             4
 
 /*Defining Subscription Topic Values*/
 #define TOPIC1                  "/cc3200/ToggleLEDCmdL1"
 #define TOPIC2                  "/cc3200/ToggleLEDCmdL2"
 #define TOPIC3                  "/cc3200/ToggleLEDCmdL3"
+#define TOPIC4                  "/cc3200/Brightness"
 
 /*Defining QOS levels*/
 #define QOS0                    0
@@ -235,7 +236,7 @@ connect_config usr_connect_config[] =
         KEEP_ALIVE_TIMER,
         {Mqtt_Recv, sl_MqttEvt, sl_MqttDisconnect},
         TOPIC_COUNT,
-        {TOPIC1, TOPIC2, TOPIC3},
+        {TOPIC1, TOPIC2, TOPIC3, TOPIC4},
         {QOS2, QOS2, QOS2},
         {WILL_TOPIC,WILL_MSG,WILL_QOS,WILL_RETAIN},
         false
@@ -284,6 +285,7 @@ Mqtt_Recv(void *app_hndl, const char  *topstr, long top_len, const void *payload
 {
     
 	bool booleano;
+	int b_r, b_y, b_g;
     char *output_str=(char*)malloc(top_len+1);
     memset(output_str,'\0',top_len+1);
     strncpy(output_str, (char*)topstr, top_len);
@@ -292,15 +294,11 @@ Mqtt_Recv(void *app_hndl, const char  *topstr, long top_len, const void *payload
 
     if(strncmp(output_str,TOPIC1, top_len) == 0)
     {
-    	//ToggleLedState(LED1);
-    	UpdateDutyCycle(TIMERA2_BASE, TIMER_B, 50);
-    	UpdateDutyCycle(TIMERA3_BASE, TIMER_B, 100);
-    	UpdateDutyCycle(TIMERA3_BASE, TIMER_A, 254);
-    	MAP_UtilsDelay(8000000);
+    	ToggleLedState(LED1);
     }
     else if(strncmp(output_str,TOPIC2, top_len) == 0)
     {
-        ToggleLedState(LED2);
+    	ToggleLedState(LED2);
     }
     else if(strncmp(output_str,TOPIC3, top_len) == 0)
     {
@@ -316,6 +314,14 @@ Mqtt_Recv(void *app_hndl, const char  *topstr, long top_len, const void *payload
     	}
     	else
     		ToggleLedState(LED1);
+    }
+    else if(strncmp(output_str,TOPIC4, top_len) == 0)
+    {
+    	if(json_scanf(payload, pay_len, "{ r: %d y: %d g: %d }", &b_r, &b_y, &b_g) > 0){
+    		UpdateDutyCycle(TIMERA2_BASE, TIMER_B, b_r);
+    		UpdateDutyCycle(TIMERA3_BASE, TIMER_A, b_y);
+    		UpdateDutyCycle(TIMERA3_BASE, TIMER_B, b_g);
+    	}
     }
 
     UART_PRINT("\n\rPublish Message Received");
@@ -469,40 +475,36 @@ void pushButtonInterruptHandler3()
 //****************************************************************************
 void ToggleLedState(ledEnum LedNum)
 {
-    unsigned char ledstate = 0;
     switch(LedNum)
     {
     case LED1:
-        ledstate = GPIO_IF_LedStatus(MCU_RED_LED_GPIO);
-        if(!ledstate)
+        if(TimerMatchGet(TIMERA2_BASE, TIMER_B)==254*DUTYCYCLE_GRANULARITY)
         {
-            GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+        	UpdateDutyCycle(TIMERA2_BASE, TIMER_B, 0);
         }
         else
         {
-            GPIO_IF_LedOff(MCU_RED_LED_GPIO);
+        	UpdateDutyCycle(TIMERA2_BASE, TIMER_B, 254);
         }
         break;
     case LED2:
-        ledstate = GPIO_IF_LedStatus(MCU_ORANGE_LED_GPIO);
-        if(!ledstate)
+        if(TimerMatchGet(TIMERA3_BASE, TIMER_A)==254*DUTYCYCLE_GRANULARITY)
         {
-            GPIO_IF_LedOn(MCU_ORANGE_LED_GPIO);
+        	UpdateDutyCycle(TIMERA3_BASE, TIMER_A, 0);
         }
         else
         {
-            GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
+        	UpdateDutyCycle(TIMERA3_BASE, TIMER_A, 254);
         }
         break;
     case LED3:
-        ledstate = GPIO_IF_LedStatus(MCU_GREEN_LED_GPIO);
-        if(!ledstate)
+        if(TimerMatchGet(TIMERA3_BASE, TIMER_B)==254*DUTYCYCLE_GRANULARITY)
         {
-            GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
+        	UpdateDutyCycle(TIMERA3_BASE, TIMER_B, 0);
         }
         else
         {
-            GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
+        	UpdateDutyCycle(TIMERA3_BASE, TIMER_B, 254);
         }
         break;
     default:
@@ -1008,8 +1010,8 @@ void SetupTimerPWMMode(unsigned long ulBase, unsigned long ulTimer,
 //!
 //! This function sets up the folowing
 //!    1. TIMERA2 (TIMER B) as RED of RGB light
-//!    2. TIMERA3 (TIMER B) as YELLOW of RGB light
-//!    3. TIMERA3 (TIMER A) as GREEN of RGB light
+//!    2. TIMERA3 (TIMER A) as YELLOW of RGB light
+//!    3. TIMERA3 (TIMER B) as GREEN of RGB light
 //!
 //! \return None.
 //
@@ -1028,12 +1030,12 @@ void InitPWMModules()
     SetupTimerPWMMode(TIMERA2_BASE, TIMER_B,
             (TIMER_CFG_SPLIT_PAIR | TIMER_CFG_B_PWM), 1);
     //
-    // TIMERA3 (TIMER B) as YELLOW of RGB light. GPIO 10 --> PWM_6
+    // TIMERA3 (TIMER A) as YELLOW of RGB light. GPIO 10 --> PWM_6
     //
     SetupTimerPWMMode(TIMERA3_BASE, TIMER_A,
             (TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PWM | TIMER_CFG_B_PWM), 1);
     //
-    // TIMERA3 (TIMER A) as GREEN of RGB light. GPIO 11 --> PWM_7
+    // TIMERA3 (TIMER B) as GREEN of RGB light. GPIO 11 --> PWM_7
     //
     SetupTimerPWMMode(TIMERA3_BASE, TIMER_B,
             (TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PWM | TIMER_CFG_B_PWM), 1);
