@@ -85,7 +85,7 @@
 #define WILL_RETAIN             false
 
 /*Defining Broker IP address and port Number*/
-#define SERVER_ADDRESS          "192.168.1.104"	//192.168.43.146
+#define SERVER_ADDRESS          "192.168.1.107"	//192.168.43.146
 #define PORT_NUMBER             1883
 
 #define MAX_BROKER_CONN         1
@@ -286,6 +286,7 @@ Mqtt_Recv(void *app_hndl, const char  *topstr, long top_len, const void *payload
     
 	bool booleano;
 	int b_r, b_y, b_g;
+	unsigned ryg[3];
     char *output_str=(char*)malloc(top_len+1);
     memset(output_str,'\0',top_len+1);
     strncpy(output_str, (char*)topstr, top_len);
@@ -317,7 +318,7 @@ Mqtt_Recv(void *app_hndl, const char  *topstr, long top_len, const void *payload
     }
     else if(strncmp(output_str,TOPIC4, top_len) == 0)
     {
-    	if(json_scanf(payload, pay_len, "{ r: %d y: %d g: %d }", &b_r, &b_y, &b_g) > 0){
+    	if(json_scanf(payload, pay_len, "{ %d:  %d, %d:  %d, %d:  %d }", &b_r, &ryg[0], &b_y, &ryg[1], &b_g, &ryg[2]) > 0){
     		UpdateDutyCycle(TIMERA2_BASE, TIMER_B, b_r);
     		UpdateDutyCycle(TIMERA3_BASE, TIMER_A, b_y);
     		UpdateDutyCycle(TIMERA3_BASE, TIMER_B, b_g);
