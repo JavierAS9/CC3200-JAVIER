@@ -1,3 +1,35 @@
 Realizado cambio 1
 
 Hacindo cambio numero 2 
+
+Creando ramas NOMENCLATURA
+
+git log --oneline --graph  					//muestra grafo con distintos commits hechos en nuestro proyecto
+
+git log --oneline --graph --decorate 				// muestra grafico con puntero
+
+git branch // muestra ramas creadas
+
+git branch nombre_rama_quiero_crear   				//crear una nueva rama
+
+++ Tras esto usar git branch de nuevo para ver nueva rama en la lista 
+
+git checkout nombre_rama_quiero_entrar 				//cambio de rama
+
+++Atajo para ultima accion
+
+git checkout -d (crear rama y cambiar directamente) nombre_nueva_rama_a_la_que_me_cambiare
+
+git branch -m (nuevo nombre) antiguo_nombre_rama nuevo_nombre_rama //Cambiar nombre rama
+
+git branch -h // INFORMACION COMANDO BRANCH
+
+
+
+
+
+
+
+
+ 
+
